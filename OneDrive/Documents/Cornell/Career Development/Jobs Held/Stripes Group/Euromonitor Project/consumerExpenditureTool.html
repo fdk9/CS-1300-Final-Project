@@ -1,0 +1,727 @@
+<html>
+<head>
+<title>Consumer Expenditure</title>
+
+<script src="//d3js.org/d3.v4.min.js"></script>
+<script src="//d3js.org/topojson.v2.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css?family=Open+Sans:300" rel="stylesheet">
+<style>
+	body {
+		font-family: 'Open Sans', sans-serif;
+		font-size: 14px;
+	}
+
+	.container {
+	    overflow: hidden;
+	}
+
+	.filterDiv {
+	    float: left;
+	    background-color: #2196F3;
+	    color: #ffffff;
+	    line-height: 30px;
+	    text-align: center;
+	    margin: 2px;
+	    min-height: 7em;
+	    display: none; /* Hidden by default */
+	}
+
+	.filterSubdiv {
+	    float: left;
+	    background-color: #2196F3;
+	    color: #ffffff;
+	    line-height: 30px;
+	    text-align: center;
+	    margin: 2px;
+	    display: none; /* Hidden by default */
+	}
+
+	/* The "show" class is added to the filtered elements */
+	.show {
+	    display: block;
+	}
+
+	/* Style the buttons */
+	.btn {
+	  border: none;
+	  outline: none;
+	  padding: 12px 16px;
+	  background-color: #f1f1f1;
+	  cursor: pointer;
+	}
+
+	/* Add a light grey background on mouse-over */
+	.btn:hover {
+	  background-color: #ddd;
+	}
+
+	/* Add a dark background to the active button */
+	.btn.active {
+	  background-color: #666;
+	  color: white;
+	}
+</style>
+
+<script>
+
+	var dataset = {world: [], usa: [], europe: []}
+	var dataForPlotting = [];
+
+	//FILTER FUNCTIONS
+
+	var appendRecord = function(geography, category, subcategory) {
+		var recordToAppend;
+		if(geography == "World") {
+			recordToAppend = findRecord(dataset.world, category, subcategory);
+		} else if (geography == "USA") {
+			recordToAppend = findRecord(dataset.usa, category, subcategory);
+		} else {
+			recordToAppend = findRecord(dataset.europe, category, subcategory);
+		}
+
+		dataForPlotting.push(recordToAppend);
+	}
+
+	var findRecord = function(data, category, subcategory) {
+
+		var returnValue; 
+		data.forEach(function(record, index) {
+			if(subcategory == "N/A") {
+
+				if(record.category == category) {
+					returnValue = record;
+				}
+
+			} else if (subcategory != "N/A") {
+
+
+				if(record.category == category) {
+
+					record.subcategories.forEach(function(subrecord) {
+						if(subrecord.category == subcategory) {
+							returnValue = subrecord;
+						}
+					});
+				}
+			}
+		});
+
+		return returnValue;
+	};
+
+	var removeRecord = function(geography, category, subcategory) {
+
+		var recordToFilterOut;
+
+		dataForPlotting.forEach(function(record) {
+
+			if(record.subcategory == "N/A") {
+				if(record.geography == geography && record.category == category) {
+					recordToFilterOut = record;
+				}
+			} else {
+				if(record.geography == geography && record.category == subcategory) {
+					recordToFilterOut = record;
+				}
+			};
+		});
+		dataForPlotting = dataForPlotting.filter(function(record) {
+
+			return (record != recordToFilterOut)
+		});
+	}
+
+	var adjustPlottingData = function(id, geography, category, subcategory) {
+		if(d3.select("#" + id).property("checked")) {
+			appendRecord(geography, category, subcategory);
+		} else {
+			removeRecord(geography, category, subcategory);
+		}
+	}
+
+	//CODE TO SET UP FORM FILTERS
+
+	var filterSubselection = function(c) {
+		c = c.replace(/ /gi, "");
+		c = c.replace(/'/gi, "");
+	  var x, i;
+	  x = document.getElementsByClassName("filterSubdiv");
+	  console.log(x);
+	  if (c == "all") c = "";
+	  // Add the "show" class (display:block) to the filtered elements, and remove the "show" class from the elements that are not selected
+	  for (i = 0; i < x.length; i++) {
+	    removeClass(x[i], "show");
+	    if (x[i].className.indexOf(c) > -1) addClass(x[i], "show");
+	  }
+	}
+
+	var filterSelection = function(c) {
+	  var x, i;
+	  c.replace(" ", "");
+	  x = document.getElementsByClassName("filterDiv");
+	  if (c == "all") c = "";
+	  // Add the "show" class (display:block) to the filtered elements, and remove the "show" class from the elements that are not selected
+	  for (i = 0; i < x.length; i++) {
+	    removeClass(x[i], "show");
+	    if (x[i].className.indexOf(c) > -1) addClass(x[i], "show");
+	  }
+	}
+
+	// Show filtered elements
+	function addClass(element, name) {
+	  var index, array1, array2;
+	  array1 = element.className.split(" ");
+	  array2 = name.split(" ");
+	  for (index = 0; index < array2.length; index++) {
+	    if (array1.indexOf(array2[i]) == -1) {
+	      element.className += " " + array2[i];
+	    }
+	  }
+	}
+
+	// Hide elements that are not selected
+	function removeClass(element, name) {
+
+	  var i, array1, array2;
+	  array1 = element.className.split(" ");
+	  array2 = name.split(" ");
+	  for (i = 0; i < array2.length; i++) {
+	    while (array1.indexOf(array2[i]) > -1) {
+	    	console.log("Yiggity yo");
+	      array1.splice(array1.indexOf(array2[i]), 1); 
+	    }
+	  }
+	  element.className = array1.join(" ");
+	}
+
+	// Add active class to the current control button (highlight it)
+	var btnContainer = d3.select("#myBtnContainer");
+	var btns = btnContainer.select(".btn");
+	for (var i = 0; i < btns.length; i++) {
+	  btns[i].addEventListener("click", function() {
+	    var current = document.getElementsByClassName("active");
+	    current[0].className = current[0].className.replace(" active", "");
+	    this.className += " active";
+	  });
+	}
+
+	//HELPER FUNCTIONS
+
+	var removeSubCategory = function(category) {
+			var cleanedCategoryString = category;
+			if (isASubCategory(category)) {
+				var colonIndex = category.indexOf(":");
+				var cleanedCategoryString = category.substring(colonIndex + 2, category.length);
+			}
+
+			return cleanedCategoryString;
+		}
+
+	var findIndustryLevelFromCategory = function(category) {
+		if(isASubCategory(category)) {
+			var colonIndex = category.indexOf(":");
+			var numberIndex = colonIndex - 1;
+			var level = Number(category.charAt(numberIndex));
+			return level;
+		} else {
+			return 0;
+		}
+	}
+
+	var calculateCAGR = function(num1, num2, periods) {
+		num1ToNum = parseFloat(num1);
+		num2ToNum = parseFloat(num2);
+		return (num2ToNum / num1ToNum) ** (1/periods) - 1;
+	}
+
+	var isASubCategory = function(category) {
+		return (category.includes("Sub") && category.includes(":"));
+	}
+
+	var pushSubrecordToBroadRecord = function(subrecord, broaderRecord) {
+		broaderRecord.subcategories.push(subrecord);
+		return broaderRecord;
+	}
+
+	var getMaxFromIndustryRecords = function(industryRecords) {
+		return d3.max(industryRecords, function(industryRecord) { return industryRecord.year2022});
+	}
+
+	var pushRecordToDatasetAppropriateGeography = function(record) {
+		var geography = record.geography;
+
+		if(geography == "World") {
+			dataset.world.push(record);
+		} else if (geography == "USA") {
+			dataset.usa.push(record);
+		} else {
+			dataset.europe.push(record);
+		}
+	}
+
+	var addRecordToGraphingData = function(record) {
+		dataForPlotting.push(record);
+	}
+
+	var updateValues = function(id, record) {
+		if(id.property("checked")) {
+			dataForPlotting.push(record);
+		} else {
+			dataForPlotting = dataForPlotting.filter(e => e !== element);
+		}
+	}
+
+	var convertToDollarFormat = function(field) {
+		return "$" + d3.format(",")(field)
+	}
+
+	//CODE THAT GRAPHS THE DATA
+	var createBargraph = function(recordsToPlot, title) {
+
+		svgHeight = 550;
+		svgWidth = 1000;
+		var fontsize = 14;
+		var fontStyle = "font-family: Open Sans; font-size: " + fontsize + "px";
+		var leftPadding = 100;
+		var rightRadding = 125;
+		var bottomPadding = 220;
+		var topPadding = 50;
+
+
+		svg = d3.select(".graphs")
+			.append("svg")
+			.attr("height", svgHeight)
+			.attr("width", svgWidth);
+
+		svg.append("text")
+        .attr("x", (svgWidth / 2))             
+        .attr("y", (30))
+        .attr("text-anchor", "middle")  
+        .attr("style", fontStyle)
+        .style("text-decoration", "underline")  
+        .text(title);
+
+
+		
+		console.log(recordsToPlot);
+		var yMin = 0;
+		var maxDatasetValue = getMaxFromIndustryRecords(recordsToPlot);
+		var yMax = maxDatasetValue/5 + maxDatasetValue;
+		console.log(getMaxFromIndustryRecords(recordsToPlot));
+
+		var xLabelOffset = 5;
+		var xScale = d3.scaleBand()
+			.domain(recordsToPlot.map(function(industryRecord){ return industryRecord.category;}))
+			.rangeRound([leftPadding, svgWidth - rightRadding]);
+		var xAxis = d3.axisBottom(xScale).tickSizeOuter(0);
+		svg.append("g")
+			.call(xAxis)
+			.attr("transform", "translate(" + 0 + "," + (svgHeight - bottomPadding) + ")")
+			.selectAll("text")
+			.attr("style", "text-anchor: start; " + fontStyle)
+			.attr("y", 10)
+		    .attr("x", xLabelOffset)
+			.attr("transform", "rotate(45)");
+
+		var distanceFromTop = 50;
+			
+		var yScale = d3.scaleLinear().domain([yMin, yMax]).range([svgHeight - bottomPadding, distanceFromTop]);
+
+		var yAxis = d3.axisLeft(yScale).tickSizeOuter(0);
+		svg.append("g")
+			.call(yAxis)
+			.attr("transform", "translate(" + leftPadding + "," + (0) + ")")
+			.selectAll("text")
+			.attr("style", fontStyle);
+
+		svg.append("text")
+			.attr("transform", "rotate(-90)")
+			.attr("y", 0)
+			.attr("x", -175)
+			.attr("dy", "1em")
+			.attr("style", "text-anchor: middle; " + fontStyle)
+			.text("Total Expenditure (USD Millions)");
+
+		var barWidth = (xScale(recordsToPlot[2].category) - xScale(recordsToPlot[1].category))/2 - 5
+
+		var bars = svg.selectAll(".bar2017")
+	      .data(recordsToPlot)
+	      .enter()
+	      .append("rect")
+	      .attr("class", "bar")
+	      .attr("width", barWidth)
+	      .attr("height", function(industryRecord) {
+	         return svgHeight - bottomPadding - yScale(industryRecord.year2017);
+	      })
+	      .attr("style", "fill: #2F4579")
+	      .attr("x", function(industryRecord) {
+	      	return xScale(industryRecord.category) + xLabelOffset;
+	      })
+	      .attr("y", function(industryRecord) {
+	      	return yScale(industryRecord.year2017);
+	      });
+
+	    var bars = svg.selectAll(".bar2022")
+	      .data(recordsToPlot)
+	      .enter()
+	      .append("rect")
+	      .attr("class", "bar")
+	      .attr("width", barWidth)
+	      .attr("height", function(industryRecord) {
+	         return svgHeight - bottomPadding - yScale(industryRecord.year2022);
+	      })
+	      .attr("style", "fill: #2F4579; opacity: 0.6")
+	      .attr("x", function(industryRecord) {
+	      	return xScale(industryRecord.category) + barWidth + xLabelOffset;
+	      })
+	      .attr("y", function(industryRecord) {
+	      	return yScale(industryRecord.year2022);
+	      });
+
+
+	      //Create the legend
+
+	      var rectY = svgHeight - 50;
+	      var rectTextSpacing = 50;
+	      var rectSize = 20;
+
+	      svg.append("rect")
+	      .attr("x", svgWidth/2 - 50 - 300)
+	      .attr("y", rectY)
+	      .attr("height", rectSize)
+	      .attr("width", rectSize)
+	      .attr("fill", "#2F4579")
+
+	      svg.append("text")
+	        .attr("x", (svgWidth / 2) - 50 + rectTextSpacing - 290)             
+	        .attr("y", rectY + 15)
+	        .attr("text-anchor", "middle")  
+	        .attr("style", fontStyle)
+	        .text("2017 Data");
+
+	      svg.append("rect")
+	      .attr("x", svgWidth/2 + 50 - 300)
+	      .attr("y", rectY)
+	      .attr("height", rectSize)
+	      .attr("width", rectSize)
+	      .attr("style", "opacity: 0.6")
+	      .attr("fill", "#2F4579");
+
+	      svg.append("text")
+	        .attr("x", (svgWidth / 2) + 50 + rectTextSpacing - 290)             
+	        .attr("y", rectY + 15)
+	        .attr("text-anchor", "middle")  
+	        .attr("style", fontStyle)
+	        .text("2022 Data");
+
+
+	      svg.append("text")
+	        .attr("x", svgWidth - 80)             
+	        .attr("y", rectY + 15)
+	        .attr("text-anchor", "middle")  
+	        .attr("style", fontStyle)
+	        .text("Source: Euromonitor");
+
+	     svg.append("circle")
+	        .attr("cx", svgWidth - 600)             
+	        .attr("cy", rectY + 10)
+	        .attr("r", 10)
+	        .attr("fill", "green")
+	        .attr("style", "opacity: 0.4");
+
+	   	svg.append("text")
+	        .attr("x", svgWidth - 550 + rectTextSpacing)             
+	        .attr("y", rectY + 15)
+	        .attr("text-anchor", "middle")  
+	        .attr("style", fontStyle)
+	        .text("Positive CAGR 2017-2022");
+
+	     svg.append("circle")
+	        .attr("cx", svgWidth - 400)             
+	        .attr("cy", rectY + 10)
+	        .attr("r", 10)
+	        .attr("fill", "red")
+	        .attr("style", "opacity: 0.4");
+
+	   	svg.append("text")
+	        .attr("x", svgWidth - 350 + rectTextSpacing)             
+	        .attr("y", rectY + 15)
+	        .attr("text-anchor", "middle")  
+	        .attr("style", fontStyle)
+	        .text("Negative CAGR 2017-2022");
+
+	      recordsToPlot.forEach(function(industryRecord) {
+
+		     var barMin = Math.min(yScale(industryRecord.year2022), yScale(industryRecord.year2017));
+
+		     var cagrColor = "green";
+
+		     if(industryRecord.cagr17to22 < 0) {
+		     	cagrColor = "red";
+		     }
+
+		      svg.append("circle")
+		        .attr("cx",  xScale(industryRecord.category) +  barWidth + 5)             
+		        .attr("cy", barMin -35)
+		        .attr("r", 19)
+		        .attr("fill", cagrColor)
+		        .attr("style", "opacity: 0.4");
+
+		     var adjustCAGR = function(number) {
+
+		        	if (number < 0) {
+		        		return ( (-1) * Math.round(number * 1000) / 10) + "%";
+		        	} else {
+		        		return (Math.round(number * 1000) / 10) + "%"
+		        	}
+		        };
+
+		      svg.append("text")
+		        .attr("x",  xScale(industryRecord.category) + xLabelOffset + barWidth)             
+		        .attr("y", barMin - 30)
+		        .attr("text-anchor", "middle")  
+		        .attr("style", fontStyle)
+		        .text(adjustCAGR(industryRecord.cagr17to22));
+
+
+		  });
+
+
+
+
+	  };
+
+	  var createGraph = function() {
+	  	createBargraph(dataForPlotting, "Consumer Expenditure in Sectors of Interest");
+	  }
+
+
+
+	//CODE TO PROCESS DATA
+
+	var processData = function(row) {
+		var category = row["Category"];
+		return {category: removeSubCategory(category), 
+			categoryLevel: findIndustryLevelFromCategory(category),
+			year2012: parseFloat(row['2012']), 
+			year2013: parseFloat(row['2013']), 
+			year2014: parseFloat(row['2014']), 
+			year2015: parseFloat(row['2015']), 
+			year2016: parseFloat(row['2016']), 
+			year2017: parseFloat(row['2017']), 
+			year2018: parseFloat(row['2018']), 
+			year2019: parseFloat(row['2019']), 
+			year2020: parseFloat(row['2020']), 
+			year2021: parseFloat(row['2021']), 
+			year2022: parseFloat(row['2022']),
+			cagr12to17: calculateCAGR(row["2012"], row["2017"], 5),
+			cagr17to22: calculateCAGR(row["2017"], row["2022"], 5),
+			geography: row["Geography"],
+			subcategories: []
+		};
+	};
+
+	var dataFromFile = [];
+
+	var category, recordFromRow, previousIndustryLevel, svg;
+	var currentIndustryLevel, currentOverallSectorRecord, currentSubSector1Record, currentSubSector2Record, currentSubSector3Record;
+
+	d3.queue()
+	.defer(d3.csv, "passportConsumerExpenditure.csv", processData)
+	.await(function(error, processedRecords) {
+
+		processedRecords.forEach(function(recordFromRow, index) {
+			category = recordFromRow.category;
+			currentIndustryLevel = recordFromRow.categoryLevel;
+
+			if(index != 0) {
+
+				if(currentIndustryLevel >= previousIndustryLevel) {
+					if (previousIndustryLevel == 0) {
+						pushRecordToDatasetAppropriateGeography(currentOverallSectorRecord);
+					} else if (previousIndustryLevel == 1) {
+						pushSubrecordToBroadRecord(currentSubSector1Record, currentOverallSectorRecord);
+					} else if (previousIndustryLevel == 2) {
+						pushSubrecordToBroadRecord(currentSubSector2Record, currentSubSector1Record);
+					} else {
+						pushSubrecordToBroadRecord(currentSubSector3Record, currentSubSector2Record);
+					}
+					subcategories = [];
+				} 
+				
+
+				if (currentIndustryLevel == 0) {
+					currentOverallSectorRecord = recordFromRow;
+				} else if (currentIndustryLevel == 1) {
+					currentSubSector1Record = recordFromRow
+				} else if (currentIndustryLevel == 2) {
+					currentSubSector2Record = recordFromRow;
+				} else {
+					currentSubSector3Record = recordFromRow;
+				}
+				
+				previousIndustryLevel = currentIndustryLevel;
+
+			} else {
+				previousIndustryLevel = currentIndustryLevel;
+				currentOverallSectorRecord = recordFromRow;
+			}
+		});
+
+		
+
+		var barGraphFormControl = d3.select(".barGraphFormControl");
+		var worldRow = barGraphFormControl.append("div").attr("class", "row world-row");
+
+		var checkboxesForGeography = function(recordsForCheckboxes, geography) {
+			recordsForCheckboxes.forEach(function(record) {
+
+				var overallCategory = record.category;
+				var filteredCategory = overallCategory.replace(/ /gi);
+				var recordId = geography + record.category.replace(/ /gi, "").replace("/", "").replace(/-/gi, "");
+
+				var categoryDiv = fieldsSection.append("div")
+				.attr("class", "col-sm-3 filterDiv " + geography.replace(" ", ""));
+
+				categoryDiv.append("input")
+				.attr("type", "checkbox")
+				.attr("value", record.category)
+				.attr("id", recordId)
+				.attr("onclick", "adjustPlottingData('"+ recordId + "', '" + geography + "', '" + record.category + "', 'N/A')");
+				;
+
+				categoryDiv.append("label")
+				.attr("for", record.category)
+				.html(record.category + " Overall");
+
+				categoryDiv.append("br");
+
+				if(record.subcategories.length > 0) {
+
+					categoryDiv.append("button")
+					.attr("class", "btn btn-default btn-sm-12")
+					.attr("onclick", "filterSubselection('" + record.category + "');")
+					.append("span")
+					.attr("class", "glyphicon glyphicon-plus-sign")
+					.html("Expand");
+
+					categoryDiv.append("br");
+
+					var subcategoryDiv = categoryDiv.append("div")
+					.attr("class", "filterSubdiv " + record.category.replace(/ /gi, ""))
+					.attr("style", "text-align: left");
+
+					record.subcategories.forEach(function(subrecord) {
+						var id = geography + subrecord.category.replace(/ /gi, "").replace("/", "").replace("-", "");
+						subcategoryDiv.append("input")
+						.attr("type", "checkbox")
+						.attr("value", subrecord.category)
+						.attr("id", id)
+						.attr("onclick", "adjustPlottingData('"+ id + "', '" + geography + "', '" + record.category + "', '" + subrecord.category + "')");
+
+						subcategoryDiv.append("label")
+						.attr("for", subrecord.category)
+						.html(subrecord.category);
+
+						subcategoryDiv.append("br");
+					});
+
+				}
+			});
+		};
+
+		var fieldsSection = d3.select(".fields");
+
+
+		checkboxesForGeography(dataset.world, "World");
+		checkboxesForGeography(dataset.usa, "USA");
+		checkboxesForGeography(dataset.europe, 'Europe');
+
+		//CREATING STANDARD GRAPHS FOR RIPLEY
+
+		var getTop10By2022Revenues = function(dataset) {
+			var newData = dataset.sort(function(x, y) {
+				return d3.descending(x.year2022, y.year2022)
+			});
+
+			return newData.slice(0, 10);
+		}
+
+		var getHighGrowthIndustries = function(dataset) {
+			var newData = dataset.sort(function(x, y) {
+				return d3.descending(x.cagr17to22, y.cagr17to22)
+			}); 
+
+			highGrowthIndustries = newData.filter(function(record) {
+				return record.year2017 > 40000;
+			});
+
+			return highGrowthIndustries.splice(0, 10);
+		
+		}
+		
+		var createGenericGraphs = function(geography, dataset) {
+			createBargraph(getTop10By2022Revenues(dataset), "Top 10 " + geography + " Industries by 2022 Revenue");
+			createBargraph(getHighGrowthIndustries(dataset), geography + "'s Fastest Growing Industries with 2017 Revenue Over $40B");
+		}
+
+	});
+
+	
+
+</script>
+
+<body>
+
+	<div class="intro">
+		<div class="col-md-12 text-center">
+			<h1>Consumer Expenditure Across Geography and Sector</h1>
+		</div>
+
+		<div class="barGraphFormControl col-sm-12">
+
+			<div class="container">
+				<p>Select industries below, then scroll to see your graph. Refresh the page to clear fields. For ease of visualization, stick to one geography. After you've selected all of the industries you want to include (At least 2 and no more than 19)...</p>
+				<button style="background-color: green; color: white" class="btn col-sm-9" onclick="createGraph()">Create Graph</button>
+			</div>
+
+			<!-- Control buttons -->
+			<div class="container" id="myBtnContainer">
+			  <button class="btn col-sm-3" onclick="filterSelection('World')"> World</button>
+			  <button class="btn col-sm-3" onclick="filterSelection('USA')"> USA</button>
+			  <button class="btn col-sm-3" onclick="filterSelection('Europe')">Western Europe</button>
+			</div>
+
+			<!-- The filterable elements. Note that some have multiple class names (this can be used if they belong to multiple categories) -->
+			
+			<div class="container fields">
+		
+			</div>
+
+		</div>
+	</div>
+
+	<div class="container graphs">
+		
+
+
+	</div>
+
+</body>
+
+	<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+	<script>
+
+		//Helper functions
+
+		
+
+	</script>
+		
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+</html>
